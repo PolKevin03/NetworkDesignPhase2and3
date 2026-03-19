@@ -1,0 +1,152 @@
+# Network Design Project - Phases 2 and 3
+
+**Team:** Kevin Pol, Andrew Thach, Odey Khello  
+**Course:** EECE 4830  
+**Repository:** `PolKevin03/NetworkDesignPhase2and3`
+
+## Overview
+
+This repository contains our reliable file transfer project over UDP.  
+Phase 2 focuses on **RDT 2.2 with bit errors**, and Phase 3 extends the work toward **RDT 3.0 with packet loss and retransmission**.
+
+The project uses stop-and-wait behavior, alternating sequence numbers, checksums for corruption detection, acknowledgments, timeout-based retransmission, and binary file transfer using a BMP test file.
+
+## What is in the repo
+
+- `src/` - base Phase 2 sender and receiver
+- `option2/` - ACK corruption case
+- `Option3/ndp2/` - DATA corruption case
+- `option4/` - ACK loss case for Phase 3 / RDT 3.0 work
+- `option5/` - DATA loss case for Phase 3 / RDT 3.0 work
+- `input/` - sample input file used for testing
+- `doc/` - design document material and README template
+- `results/` - output/result storage
+- `plot/` - plots and visual results
+
+## Team work split
+
+- **Kevin Pol** - core protocol setup and ACK-loss side
+- **Andrew Thach** - DATA-loss side and experiment execution
+- **Odey Khello** - analysis, plots/tables, README and documentation
+
+## Packet format used in the code
+
+The packet header used in the current scripts includes:
+
+- `type` - packet type
+- `seq` - sequence number (0 or 1)
+- `length` - payload size
+- `checksum` - CRC32-based checksum
+- `payload` - file data
+
+Current chunk size is 1024 bytes.
+
+## How the protocol works
+
+### Phase 2 - RDT 2.2
+
+The sender reads the input file in chunks, builds a packet, sends one packet at a time, and waits for an ACK.  
+If the ACK is correct, the sender moves to the next sequence number.  
+If the ACK is corrupted, wrong, or not received before timeout, the sender retransmits the same packet.
+
+The receiver checks each packet using the checksum and sequence number.  
+If the packet is correct and expected, it writes the payload to the output file and sends an ACK.  
+If the packet is corrupted or unexpected, it sends the last good ACK again.
+
+### Phase 3 - RDT 3.0 direction
+
+Phase 3 builds on the same stop-and-wait flow, but now packet or ACK loss is treated through timeout and retransmission.  
+The current repo already includes separate option files for ACK-loss and DATA-loss testing.
+
+## Quick run commands
+
+> These are example commands based on the current filenames in the repo.
+
+### 1) Base Phase 2 run
+
+**Receiver**
+```bash
+cd src
+python server_rdt22.py
+```
+
+**Sender**
+```bash
+cd src
+python client_rdt22.py ../input/bmp_24.bmp
+```
+
+### 2) Option 2 - Corrupt ACK at sender
+
+**Receiver**
+```bash
+cd option2
+python server_rdt22.py
+```
+
+**Sender**
+```bash
+cd option2
+python client_rdt22.py bmp_24.bmp 0.20 42
+```
+
+### 3) Option 3 - Corrupt DATA at receiver
+
+**Receiver**
+```bash
+cd Option3/ndp2
+python server_rdt22.py 0.20 42 received.bmp
+```
+
+**Sender**
+```bash
+cd Option3/ndp2
+python client_rdt22.py ../../input/bmp_24.bmp
+```
+
+### 4) Option 4 - ACK loss
+
+**Receiver**
+```bash
+cd option4
+python server_rdt22notupdated.py
+```
+
+**Sender**
+```bash
+cd option4
+python client_rdt30.py ../input/bmp_24.bmp 0.20 42
+```
+
+### 5) Option 5 - DATA loss
+
+**Receiver**
+```bash
+cd option5
+python server-rdt30updated.py 0.20 42
+```
+
+**Sender**
+```bash
+cd option5
+python client_rdt30notupdated.py ../input/bmp_24.bmp
+```
+
+## Expected output
+
+- A `received.bmp` file should be created on the receiver side.
+- The received file should match the original BMP input file.
+- Some option scripts also print useful counters such as retransmissions, dropped packets, duplicate ACKs, and injected corruption/loss.
+
+## Current notes / limitations
+
+- The current scripts use `localhost` and port `13000` by default.
+- The code is written as direct Python scripts, not a full unified CLI yet.
+- Phase 3 work is currently split across separate option folders instead of one combined final script.
+- The setup is for one sender and one receiver at a time.
+- Some file paths depend on which folder you run the command from.
+
+## Repo summary
+
+This repo shows the progression from reliable transfer with bit-error handling in Phase 2 to timeout-based loss handling in Phase 3.  
+The main goal is to demonstrate the protocol behavior clearly, verify correct file transfer, and keep the folder structure organized by scenario.
